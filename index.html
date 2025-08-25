@@ -6,6 +6,9 @@
     <title>Solicitação de Perícia Médica/Odontológica</title>
     <!-- Carrega o Tailwind CSS para o estilo responsivo -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inclui as bibliotecas para gerar PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         /* Define a fonte "Inter" para todo o corpo do documento */
         body {
@@ -19,6 +22,18 @@
         .modal-overlay {
             background-color: rgba(0, 0, 0, 0.5);
         }
+        /* Estilo para o conteúdo a ser gerado no PDF */
+        #pdfContent {
+            display: none; /* Mantém o conteúdo invisível até a geração do PDF */
+            padding: 2rem;
+            background-color: white;
+            color: #1f2937;
+        }
+        #pdfContent h1, #pdfContent h2, #pdfContent h3 { color: #374151; }
+        #pdfContent .section { margin-bottom: 2rem; border-bottom: 2px solid #e5e7eb; padding-bottom: 1rem; }
+        #pdfContent .section-title { font-size: 1.25rem; font-weight: bold; margin-bottom: 1rem; }
+        #pdfContent .data-row { margin-bottom: 0.5rem; }
+        #pdfContent .data-label { font-weight: 600; margin-right: 0.5rem; }
     </style>
 </head>
 <body class="bg-gray-100 p-4 sm:p-8 md:p-12">
@@ -257,7 +272,10 @@
         </div>
     </div>
 
-    <!-- Script para lidar com o envio do formulário -->
+    <!-- Div oculta para gerar o PDF com a formatação correta -->
+    <div id="pdfContent"></div>
+
+    <!-- Script para lidar com o envio do formulário e a geração do PDF -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const form = document.getElementById('periciaForm');
@@ -265,6 +283,7 @@
             const modalContent = document.getElementById('modalContent');
             const closeModalBtn = document.getElementById('closeModal');
             const generatePdfBtn = document.getElementById('generatePdfBtn');
+            const pdfContentContainer = document.getElementById('pdfContent');
 
             form.addEventListener('submit', (event) => {
                 event.preventDefault();
@@ -312,67 +331,73 @@
 
             // Lógica para o botão "Gerar PDF"
             generatePdfBtn.addEventListener('click', () => {
+                // Recupera os dados do formulário armazenados
                 const formData = JSON.parse(generatePdfBtn.dataset.formData);
-                const pdfContent = `
-                    <!DOCTYPE html>
-                    <html lang="pt-br">
-                    <head>
-                        <title>Requerimento de Perícia Médica</title>
-                        <style>
-                            body { font-family: 'Inter', sans-serif; margin: 2rem; color: #1f2937; }
-                            h1, h2, h3 { color: #374151; }
-                            .section { margin-bottom: 2rem; border-bottom: 2px solid #e5e7eb; padding-bottom: 1rem; }
-                            .section-title { font-size: 1.25rem; font-weight: bold; margin-bottom: 1rem; }
-                            .data-row { margin-bottom: 0.5rem; }
-                            .data-label { font-weight: 600; margin-right: 0.5rem; }
-                        </style>
-                    </head>
-                    <body>
-                        <header style="text-align: center; margin-bottom: 2rem;">
-                            <h1 style="font-size: 2rem; font-weight: bold;">PREFEITURA MUNICIPAL DE BOA VISTA</h1>
-                            <p style="font-size: 0.875rem;">SECRETARIA MUNICIPAL DE ADMINISTRAÇÃO E GESTÃO DE PESSOAS</p>
-                        </header>
-                        
-                        <h2 style="text-align: center; font-size: 1.5rem; margin-bottom: 2rem;">SOLICITAÇÃO DE PERÍCIA MÉDICA/ODONTOLÓGICA</h2>
 
-                        <div class="section">
-                            <h3 class="section-title">DADOS PESSOAIS</h3>
-                            <div class="data-row"><span class="data-label">Nome:</span> ${formData.nome || ''}</div>
-                            <div class="data-row"><span class="data-label">RG nº:</span> ${formData.rg || ''}</div>
-                            <div class="data-row"><span class="data-label">CPF:</span> ${formData.cpf || ''}</div>
-                            <div class="data-row"><span class="data-label">Data de Nasc.:</span> ${formData.dtNasc || ''}</div>
-                            <div class="data-row"><span class="data-label">Filiação:</span> ${formData.filiacao || ''}</div>
-                            <div class="data-row"><span class="data-label">Endereço:</span> ${formData.endereco || ''}</div>
-                        </div>
+                // Prepara o HTML a ser convertido em PDF
+                pdfContentContainer.innerHTML = `
+                    <header style="text-align: center; margin-bottom: 2rem;">
+                        <h1 style="font-size: 2rem; font-weight: bold;">PREFEITURA MUNICIPAL DE BOA VISTA</h1>
+                        <p style="font-size: 0.875rem;">SECRETARIA MUNICIPAL DE ADMINISTRAÇÃO E GESTÃO DE PESSOAS</p>
+                    </header>
+                    
+                    <h2 style="text-align: center; font-size: 1.5rem; margin-bottom: 2rem;">SOLICITAÇÃO DE PERÍCIA MÉDICA/ODONTOLÓGICA</h2>
 
-                        <div class="section">
-                            <h3 class="section-title">DADOS PROFISSIONAIS</h3>
-                            <div class="data-row"><span class="data-label">Cargo:</span> ${formData.cargo1 || ''}</div>
-                            <div class="data-row"><span class="data-label">Matrícula:</span> ${formData.matricula1 || ''}</div>
-                            <div class="data-row"><span class="data-label">Secretaria/Órgão:</span> ${formData.secretaria1 || ''}</div>
-                            <div class="data-row"><span class="data-label">Vínculo:</span> ${formData.vinculo || ''}</div>
-                        </div>
+                    <div class="section">
+                        <h3 class="section-title">DADOS PESSOAIS</h3>
+                        <div class="data-row"><span class="data-label">Nome:</span> ${formData.nome || ''}</div>
+                        <div class="data-row"><span class="data-label">RG nº:</span> ${formData.rg || ''}</div>
+                        <div class="data-row"><span class="data-label">CPF:</span> ${formData.cpf || ''}</div>
+                        <div class="data-row"><span class="data-label">Data de Nasc.:</span> ${formData.dtNasc || ''}</div>
+                        <div class="data-row"><span class="data-label">Filiação:</span> ${formData.filiacao || ''}</div>
+                        <div class="data-row"><span class="data-label">Endereço:</span> ${formData.endereco || ''}</div>
+                    </div>
 
-                        <div class="section">
-                            <h3 class="section-title">MOTIVO DA SOLICITAÇÃO</h3>
-                            <div class="data-row"><span class="data-label">Licença:</span> ${formData.licenca || ''}</div>
-                            <div class="data-row"><span class="data-label">Nome do familiar:</span> ${formData.nomeFamiliar || ''}</div>
-                            <div class="data-row"><span class="data-label">Grau de parentesco:</span> ${formData.grauParentesco || ''}</div>
-                            <div class="data-row"><span class="data-label">Reabilitação Ocupacional:</span> ${formData.reabilitacao || ''}</div>
-                        </div>
+                    <div class="section">
+                        <h3 class="section-title">DADOS PROFISSIONAIS</h3>
+                        <div class="data-row"><span class="data-label">Cargo:</span> ${formData.cargo1 || ''}</div>
+                        <div class="data-row"><span class="data-label">Matrícula:</span> ${formData.matricula1 || ''}</div>
+                        <div class="data-row"><span class="data-label">Secretaria/Órgão:</span> ${formData.secretaria1 || ''}</div>
+                        <div class="data-row"><span class="data-label">Vínculo:</span> ${formData.vinculo || ''}</div>
+                    </div>
 
-                        <div class="section">
-                            <h3 class="section-title">ANEXOS</h3>
-                            <div class="data-row"><span class="data-label">Documentos Anexos:</span> ${formData.anexos || ''}</div>
-                        </div>
-                    </body>
-                    </html>
+                    <div class="section">
+                        <h3 class="section-title">MOTIVO DA SOLICITAÇÃO</h3>
+                        <div class="data-row"><span class="data-label">Licença:</span> ${formData.licenca || ''}</div>
+                        <div class="data-row"><span class="data-label">Nome do familiar:</span> ${formData.nomeFamiliar || ''}</div>
+                        <div class="data-row"><span class="data-label">Grau de parentesco:</span> ${formData.grauParentesco || ''}</div>
+                        <div class="data-row"><span class="data-label">Reabilitação Ocupacional:</span> ${formData.reabilitacao || ''}</div>
+                    </div>
+
+                    <div class="section">
+                        <h3 class="section-title">ANEXOS</h3>
+                        <div class="data-row"><span class="data-label">Documentos Anexos:</span> ${formData.anexos || ''}</div>
+                    </div>
                 `;
+                
+                // Converte o HTML para uma imagem (canvas)
+                html2canvas(pdfContentContainer).then(canvas => {
+                    const imgData = canvas.toDataURL('image/png');
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF('p', 'mm', 'a4');
+                    const imgProps = doc.getImageProperties(imgData);
+                    const pdfWidth = doc.internal.pageSize.getWidth();
+                    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
-                // Abre uma nova janela e insere o HTML gerado
-                const newWindow = window.open('', '_blank');
-                newWindow.document.write(pdfContent);
-                newWindow.document.close();
+                    // Adiciona a imagem ao PDF
+                    doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+
+                    // Salva o arquivo com o nome "requerimento.pdf"
+                    doc.save("requerimento.pdf");
+
+                    // Limpa o conteúdo temporário
+                    pdfContentContainer.innerHTML = '';
+                    modal.style.display = 'none';
+                }).catch(error => {
+                    console.error("Erro ao gerar PDF:", error);
+                    alert("Ocorreu um erro ao gerar o PDF. Verifique o console para mais detalhes.");
+                    modal.style.display = 'none';
+                });
             });
         });
     </script>
