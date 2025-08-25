@@ -15,7 +15,7 @@
             font-family: 'Inter', sans-serif;
             background-color: #f3f4f6;
         }
-        /* Estilos para o modal de sucesso */
+        /* Estilos para o modal de carregamento */
         .modal {
             display: none;
         }
@@ -23,8 +23,12 @@
             background-color: rgba(0, 0, 0, 0.5);
         }
         /* Estilo para o conteúdo a ser gerado no PDF */
+        /* Move o elemento para fora da tela para ser invisível ao usuário, mas visível para a renderização do html2canvas */
         #pdfContent {
-            display: none; /* Mantém o conteúdo invisível até a geração do PDF */
+            position: absolute;
+            left: -9999px;
+            top: -9999px;
+            width: 210mm; /* Largura A4 */
             padding: 2rem;
             background-color: white;
             color: #1f2937;
@@ -250,24 +254,17 @@
         <!-- Botão de Enviar -->
         <div class="mt-8 text-center">
             <button type="submit" class="w-full sm:w-auto px-6 py-3 bg-orange-600 text-white font-semibold rounded-lg shadow-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-colors">
-                Enviar
+                Gerar PDF
             </button>
         </div>
     </form>
 
-    <!-- Modal para exibir os dados do formulário -->
-    <div id="successModal" class="modal fixed inset-0 flex items-center justify-center p-4 z-50">
+    <!-- Modal para exibir mensagem de carregamento -->
+    <div id="loadingModal" class="modal fixed inset-0 flex items-center justify-center p-4 z-50">
         <div class="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-50"></div>
-        <div class="bg-white rounded-lg p-6 w-full max-w-lg shadow-xl z-50 transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-bold text-gray-800">Dados do Formulário Enviados</h3>
-                <button id="closeModal" class="text-gray-400 hover:text-gray-600 transition-colors">&times;</button>
-            </div>
-            <div id="modalContent" class="overflow-y-auto max-h-96 text-gray-700 mb-4">
-                <!-- O conteúdo do formulário será inserido aqui pelo JavaScript -->
-            </div>
-            <div class="flex justify-end space-x-2">
-                <button id="generatePdfBtn" class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors">Gerar PDF</button>
+        <div class="bg-white rounded-lg p-6 w-full max-w-sm shadow-xl z-50 transform transition-all sm:my-8 sm:align-middle sm:max-w-sm sm:w-full">
+            <div class="text-center text-gray-600">
+                <p>Gerando PDF, por favor aguarde...</p>
             </div>
         </div>
     </div>
@@ -279,14 +276,15 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const form = document.getElementById('periciaForm');
-            const modal = document.getElementById('successModal');
-            const modalContent = document.getElementById('modalContent');
-            const closeModalBtn = document.getElementById('closeModal');
-            const generatePdfBtn = document.getElementById('generatePdfBtn');
+            const loadingModal = document.getElementById('loadingModal');
             const pdfContentContainer = document.getElementById('pdfContent');
 
             form.addEventListener('submit', (event) => {
                 event.preventDefault();
+                
+                // Exibe a mensagem de carregamento
+                loadingModal.style.display = 'flex';
+
                 const formData = new FormData(form);
                 let data = {};
 
@@ -306,34 +304,6 @@
                     }
                 });
 
-                let dataHtml = '<ul class="list-disc list-inside space-y-2">';
-                for (const key in data) {
-                    dataHtml += `<li><strong class="font-semibold">${key}:</strong> ${data[key]}</li>`;
-                }
-                dataHtml += '</ul>';
-
-                modalContent.innerHTML = dataHtml;
-                modal.style.display = 'flex';
-
-                // Armazena os dados para o botão "Gerar PDF" usar
-                generatePdfBtn.dataset.formData = JSON.stringify(data);
-            });
-
-            closeModalBtn.addEventListener('click', () => {
-                modal.style.display = 'none';
-            });
-
-            window.addEventListener('click', (event) => {
-                if (event.target === modal) {
-                    modal.style.display = 'none';
-                }
-            });
-
-            // Lógica para o botão "Gerar PDF"
-            generatePdfBtn.addEventListener('click', () => {
-                // Recupera os dados do formulário armazenados
-                const formData = JSON.parse(generatePdfBtn.dataset.formData);
-
                 // Prepara o HTML a ser convertido em PDF
                 pdfContentContainer.innerHTML = `
                     <header style="text-align: center; margin-bottom: 2rem;">
@@ -345,33 +315,33 @@
 
                     <div class="section">
                         <h3 class="section-title">DADOS PESSOAIS</h3>
-                        <div class="data-row"><span class="data-label">Nome:</span> ${formData.nome || ''}</div>
-                        <div class="data-row"><span class="data-label">RG nº:</span> ${formData.rg || ''}</div>
-                        <div class="data-row"><span class="data-label">CPF:</span> ${formData.cpf || ''}</div>
-                        <div class="data-row"><span class="data-label">Data de Nasc.:</span> ${formData.dtNasc || ''}</div>
-                        <div class="data-row"><span class="data-label">Filiação:</span> ${formData.filiacao || ''}</div>
-                        <div class="data-row"><span class="data-label">Endereço:</span> ${formData.endereco || ''}</div>
+                        <div class="data-row"><span class="data-label">Nome:</span> ${data.nome || ''}</div>
+                        <div class="data-row"><span class="data-label">RG nº:</span> ${data.rg || ''}</div>
+                        <div class="data-row"><span class="data-label">CPF:</span> ${data.cpf || ''}</div>
+                        <div class="data-row"><span class="data-label">Data de Nasc.:</span> ${data.dtNasc || ''}</div>
+                        <div class="data-row"><span class="data-label">Filiação:</span> ${data.filiacao || ''}</div>
+                        <div class="data-row"><span class="data-label">Endereço:</span> ${data.endereco || ''}</div>
                     </div>
 
                     <div class="section">
                         <h3 class="section-title">DADOS PROFISSIONAIS</h3>
-                        <div class="data-row"><span class="data-label">Cargo:</span> ${formData.cargo1 || ''}</div>
-                        <div class="data-row"><span class="data-label">Matrícula:</span> ${formData.matricula1 || ''}</div>
-                        <div class="data-row"><span class="data-label">Secretaria/Órgão:</span> ${formData.secretaria1 || ''}</div>
-                        <div class="data-row"><span class="data-label">Vínculo:</span> ${formData.vinculo || ''}</div>
+                        <div class="data-row"><span class="data-label">Cargo:</span> ${data.cargo1 || ''}</div>
+                        <div class="data-row"><span class="data-label">Matrícula:</span> ${data.matricula1 || ''}</div>
+                        <div class="data-row"><span class="data-label">Secretaria/Órgão:</span> ${data.secretaria1 || ''}</div>
+                        <div class="data-row"><span class="data-label">Vínculo:</span> ${data.vinculo || ''}</div>
                     </div>
 
                     <div class="section">
                         <h3 class="section-title">MOTIVO DA SOLICITAÇÃO</h3>
-                        <div class="data-row"><span class="data-label">Licença:</span> ${formData.licenca || ''}</div>
-                        <div class="data-row"><span class="data-label">Nome do familiar:</span> ${formData.nomeFamiliar || ''}</div>
-                        <div class="data-row"><span class="data-label">Grau de parentesco:</span> ${formData.grauParentesco || ''}</div>
-                        <div class="data-row"><span class="data-label">Reabilitação Ocupacional:</span> ${formData.reabilitacao || ''}</div>
+                        <div class="data-row"><span class="data-label">Licença:</span> ${data.licenca || ''}</div>
+                        <div class="data-row"><span class="data-label">Nome do familiar:</span> ${data.nomeFamiliar || ''}</div>
+                        <div class="data-row"><span class="data-label">Grau de parentesco:</span> ${data.grauParentesco || ''}</div>
+                        <div class="data-row"><span class="data-label">Reabilitação Ocupacional:</span> ${data.reabilitacao || ''}</div>
                     </div>
 
                     <div class="section">
                         <h3 class="section-title">ANEXOS</h3>
-                        <div class="data-row"><span class="data-label">Documentos Anexos:</span> ${formData.anexos || ''}</div>
+                        <div class="data-row"><span class="data-label">Documentos Anexos:</span> ${data.anexos || ''}</div>
                     </div>
                 `;
                 
@@ -390,13 +360,16 @@
                     // Salva o arquivo com o nome "requerimento.pdf"
                     doc.save("requerimento.pdf");
 
-                    // Limpa o conteúdo temporário
+                    // Limpa o conteúdo temporário e esconde o modal
                     pdfContentContainer.innerHTML = '';
-                    modal.style.display = 'none';
+                    loadingModal.style.display = 'none';
+
                 }).catch(error => {
                     console.error("Erro ao gerar PDF:", error);
                     alert("Ocorreu um erro ao gerar o PDF. Verifique o console para mais detalhes.");
-                    modal.style.display = 'none';
+
+                    // Esconde o modal em caso de erro
+                    loadingModal.style.display = 'none';
                 });
             });
         });
