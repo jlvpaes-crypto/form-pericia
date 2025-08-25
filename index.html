@@ -241,15 +241,18 @@
     </form>
 
     <!-- Modal para exibir os dados do formulário -->
-    <div id="successModal" class="modal fixed inset-0 flex items-center justify-center p-4">
-        <div class="modal-overlay fixed inset-0"></div>
+    <div id="successModal" class="modal fixed inset-0 flex items-center justify-center p-4 z-50">
+        <div class="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-50"></div>
         <div class="bg-white rounded-lg p-6 w-full max-w-lg shadow-xl z-50 transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-xl font-bold text-gray-800">Dados do Formulário Enviados</h3>
                 <button id="closeModal" class="text-gray-400 hover:text-gray-600 transition-colors">&times;</button>
             </div>
-            <div id="modalContent" class="overflow-y-auto max-h-96 text-gray-700">
+            <div id="modalContent" class="overflow-y-auto max-h-96 text-gray-700 mb-4">
                 <!-- O conteúdo do formulário será inserido aqui pelo JavaScript -->
+            </div>
+            <div class="flex justify-end space-x-2">
+                <button id="generatePdfBtn" class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors">Gerar PDF</button>
             </div>
         </div>
     </div>
@@ -261,66 +264,115 @@
             const modal = document.getElementById('successModal');
             const modalContent = document.getElementById('modalContent');
             const closeModalBtn = document.getElementById('closeModal');
+            const generatePdfBtn = document.getElementById('generatePdfBtn');
 
             form.addEventListener('submit', (event) => {
-                // Previne o comportamento padrão de envio do formulário, que recarrega a página
                 event.preventDefault();
-
-                // Coleta todos os dados do formulário
                 const formData = new FormData(form);
-                let dataHtml = '<ul class="list-disc list-inside space-y-2">';
-                
-                // Itera sobre os dados e cria uma lista para exibir no modal
+                let data = {};
+
+                // Coleta todos os dados de input e textarea
                 formData.forEach((value, key) => {
-                    // Ignora campos vazios
                     if (value.trim() !== '') {
-                        dataHtml += `<li><strong class="font-semibold">${key}:</strong> ${value}</li>`;
+                        data[key] = value;
                     }
                 });
                 
-                // Coleta os valores de checkboxes individualmente, já que FormData só pega o primeiro
-                const vinculoCheckboxes = document.querySelectorAll('input[name="vinculo"]:checked');
-                if (vinculoCheckboxes.length > 0) {
-                    const vinculos = Array.from(vinculoCheckboxes).map(cb => cb.value).join(', ');
-                    dataHtml += `<li><strong class="font-semibold">vinculo:</strong> ${vinculos}</li>`;
-                }
+                // Coleta os valores de checkboxes individualmente, agrupando-os por nome
+                const checkboxNames = ['vinculo', 'licenca', 'reabilitacao', 'anexos'];
+                checkboxNames.forEach(name => {
+                    const checkedValues = Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(cb => cb.value);
+                    if (checkedValues.length > 0) {
+                        data[name] = checkedValues.join(', ');
+                    }
+                });
 
-                const licencaCheckboxes = document.querySelectorAll('input[name="licenca"]:checked');
-                if (licencaCheckboxes.length > 0) {
-                    const licencas = Array.from(licencaCheckboxes).map(cb => cb.value).join(', ');
-                    dataHtml += `<li><strong class="font-semibold">licenca:</strong> ${licencas}</li>`;
+                let dataHtml = '<ul class="list-disc list-inside space-y-2">';
+                for (const key in data) {
+                    dataHtml += `<li><strong class="font-semibold">${key}:</strong> ${data[key]}</li>`;
                 }
-                
-                const reabilitacaoCheckboxes = document.querySelectorAll('input[name="reabilitacao"]:checked');
-                if (reabilitacaoCheckboxes.length > 0) {
-                    const reabilitacoes = Array.from(reabilitacaoCheckboxes).map(cb => cb.value).join(', ');
-                    dataHtml += `<li><strong class="font-semibold">reabilitacao:</strong> ${reabilitacoes}</li>`;
-                }
-                
-                const anexosCheckboxes = document.querySelectorAll('input[name="anexos"]:checked');
-                if (anexosCheckboxes.length > 0) {
-                    const anexos = Array.from(anexosCheckboxes).map(cb => cb.value).join(', ');
-                    dataHtml += `<li><strong class="font-semibold">anexos:</strong> ${anexos}</li>`;
-                }
-
                 dataHtml += '</ul>';
 
-                // Atualiza o conteúdo do modal com os dados do formulário
                 modalContent.innerHTML = dataHtml;
-                // Exibe o modal
                 modal.style.display = 'flex';
+
+                // Armazena os dados para o botão "Gerar PDF" usar
+                generatePdfBtn.dataset.formData = JSON.stringify(data);
             });
 
-            // Fecha o modal ao clicar no botão de fechar
             closeModalBtn.addEventListener('click', () => {
                 modal.style.display = 'none';
             });
 
-            // Fecha o modal ao clicar fora dele
             window.addEventListener('click', (event) => {
                 if (event.target === modal) {
                     modal.style.display = 'none';
                 }
+            });
+
+            // Lógica para o botão "Gerar PDF"
+            generatePdfBtn.addEventListener('click', () => {
+                const formData = JSON.parse(generatePdfBtn.dataset.formData);
+                const pdfContent = `
+                    <!DOCTYPE html>
+                    <html lang="pt-br">
+                    <head>
+                        <title>Requerimento de Perícia Médica</title>
+                        <style>
+                            body { font-family: 'Inter', sans-serif; margin: 2rem; color: #1f2937; }
+                            h1, h2, h3 { color: #374151; }
+                            .section { margin-bottom: 2rem; border-bottom: 2px solid #e5e7eb; padding-bottom: 1rem; }
+                            .section-title { font-size: 1.25rem; font-weight: bold; margin-bottom: 1rem; }
+                            .data-row { margin-bottom: 0.5rem; }
+                            .data-label { font-weight: 600; margin-right: 0.5rem; }
+                        </style>
+                    </head>
+                    <body>
+                        <header style="text-align: center; margin-bottom: 2rem;">
+                            <h1 style="font-size: 2rem; font-weight: bold;">PREFEITURA MUNICIPAL DE BOA VISTA</h1>
+                            <p style="font-size: 0.875rem;">SECRETARIA MUNICIPAL DE ADMINISTRAÇÃO E GESTÃO DE PESSOAS</p>
+                        </header>
+                        
+                        <h2 style="text-align: center; font-size: 1.5rem; margin-bottom: 2rem;">SOLICITAÇÃO DE PERÍCIA MÉDICA/ODONTOLÓGICA</h2>
+
+                        <div class="section">
+                            <h3 class="section-title">DADOS PESSOAIS</h3>
+                            <div class="data-row"><span class="data-label">Nome:</span> ${formData.nome || ''}</div>
+                            <div class="data-row"><span class="data-label">RG nº:</span> ${formData.rg || ''}</div>
+                            <div class="data-row"><span class="data-label">CPF:</span> ${formData.cpf || ''}</div>
+                            <div class="data-row"><span class="data-label">Data de Nasc.:</span> ${formData.dtNasc || ''}</div>
+                            <div class="data-row"><span class="data-label">Filiação:</span> ${formData.filiacao || ''}</div>
+                            <div class="data-row"><span class="data-label">Endereço:</span> ${formData.endereco || ''}</div>
+                        </div>
+
+                        <div class="section">
+                            <h3 class="section-title">DADOS PROFISSIONAIS</h3>
+                            <div class="data-row"><span class="data-label">Cargo:</span> ${formData.cargo1 || ''}</div>
+                            <div class="data-row"><span class="data-label">Matrícula:</span> ${formData.matricula1 || ''}</div>
+                            <div class="data-row"><span class="data-label">Secretaria/Órgão:</span> ${formData.secretaria1 || ''}</div>
+                            <div class="data-row"><span class="data-label">Vínculo:</span> ${formData.vinculo || ''}</div>
+                        </div>
+
+                        <div class="section">
+                            <h3 class="section-title">MOTIVO DA SOLICITAÇÃO</h3>
+                            <div class="data-row"><span class="data-label">Licença:</span> ${formData.licenca || ''}</div>
+                            <div class="data-row"><span class="data-label">Nome do familiar:</span> ${formData.nomeFamiliar || ''}</div>
+                            <div class="data-row"><span class="data-label">Grau de parentesco:</span> ${formData.grauParentesco || ''}</div>
+                            <div class="data-row"><span class="data-label">Reabilitação Ocupacional:</span> ${formData.reabilitacao || ''}</div>
+                        </div>
+
+                        <div class="section">
+                            <h3 class="section-title">ANEXOS</h3>
+                            <div class="data-row"><span class="data-label">Documentos Anexos:</span> ${formData.anexos || ''}</div>
+                        </div>
+                    </body>
+                    </html>
+                `;
+
+                // Abre uma nova janela e insere o HTML gerado
+                const newWindow = window.open('', '_blank');
+                newWindow.document.write(pdfContent);
+                newWindow.document.close();
             });
         });
     </script>
