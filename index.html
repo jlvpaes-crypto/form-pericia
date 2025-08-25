@@ -12,10 +12,18 @@
             font-family: 'Inter', sans-serif;
             background-color: #f3f4f6;
         }
+        /* Estilos para o modal de sucesso */
+        .modal {
+            display: none;
+        }
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
     </style>
 </head>
 <body class="bg-gray-100 p-4 sm:p-8 md:p-12">
-    <div class="max-w-4xl mx-auto bg-white p-6 sm:p-8 md:p-12 rounded-2xl shadow-xl">
+    <!-- Formulário principal -->
+    <form id="periciaForm" class="max-w-4xl mx-auto bg-white p-6 sm:p-8 md:p-12 rounded-2xl shadow-xl">
         <!-- Cabeçalho do formulário -->
         <header class="text-center mb-8">
             <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800">PREFEITURA MUNICIPAL DE BOA VISTA</h1>
@@ -230,6 +238,91 @@
                 Enviar
             </button>
         </div>
+    </form>
+
+    <!-- Modal para exibir os dados do formulário -->
+    <div id="successModal" class="modal fixed inset-0 flex items-center justify-center p-4">
+        <div class="modal-overlay fixed inset-0"></div>
+        <div class="bg-white rounded-lg p-6 w-full max-w-lg shadow-xl z-50 transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-800">Dados do Formulário Enviados</h3>
+                <button id="closeModal" class="text-gray-400 hover:text-gray-600 transition-colors">&times;</button>
+            </div>
+            <div id="modalContent" class="overflow-y-auto max-h-96 text-gray-700">
+                <!-- O conteúdo do formulário será inserido aqui pelo JavaScript -->
+            </div>
+        </div>
     </div>
+
+    <!-- Script para lidar com o envio do formulário -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('periciaForm');
+            const modal = document.getElementById('successModal');
+            const modalContent = document.getElementById('modalContent');
+            const closeModalBtn = document.getElementById('closeModal');
+
+            form.addEventListener('submit', (event) => {
+                // Previne o comportamento padrão de envio do formulário, que recarrega a página
+                event.preventDefault();
+
+                // Coleta todos os dados do formulário
+                const formData = new FormData(form);
+                let dataHtml = '<ul class="list-disc list-inside space-y-2">';
+                
+                // Itera sobre os dados e cria uma lista para exibir no modal
+                formData.forEach((value, key) => {
+                    // Ignora campos vazios
+                    if (value.trim() !== '') {
+                        dataHtml += `<li><strong class="font-semibold">${key}:</strong> ${value}</li>`;
+                    }
+                });
+                
+                // Coleta os valores de checkboxes individualmente, já que FormData só pega o primeiro
+                const vinculoCheckboxes = document.querySelectorAll('input[name="vinculo"]:checked');
+                if (vinculoCheckboxes.length > 0) {
+                    const vinculos = Array.from(vinculoCheckboxes).map(cb => cb.value).join(', ');
+                    dataHtml += `<li><strong class="font-semibold">vinculo:</strong> ${vinculos}</li>`;
+                }
+
+                const licencaCheckboxes = document.querySelectorAll('input[name="licenca"]:checked');
+                if (licencaCheckboxes.length > 0) {
+                    const licencas = Array.from(licencaCheckboxes).map(cb => cb.value).join(', ');
+                    dataHtml += `<li><strong class="font-semibold">licenca:</strong> ${licencas}</li>`;
+                }
+                
+                const reabilitacaoCheckboxes = document.querySelectorAll('input[name="reabilitacao"]:checked');
+                if (reabilitacaoCheckboxes.length > 0) {
+                    const reabilitacoes = Array.from(reabilitacaoCheckboxes).map(cb => cb.value).join(', ');
+                    dataHtml += `<li><strong class="font-semibold">reabilitacao:</strong> ${reabilitacoes}</li>`;
+                }
+                
+                const anexosCheckboxes = document.querySelectorAll('input[name="anexos"]:checked');
+                if (anexosCheckboxes.length > 0) {
+                    const anexos = Array.from(anexosCheckboxes).map(cb => cb.value).join(', ');
+                    dataHtml += `<li><strong class="font-semibold">anexos:</strong> ${anexos}</li>`;
+                }
+
+                dataHtml += '</ul>';
+
+                // Atualiza o conteúdo do modal com os dados do formulário
+                modalContent.innerHTML = dataHtml;
+                // Exibe o modal
+                modal.style.display = 'flex';
+            });
+
+            // Fecha o modal ao clicar no botão de fechar
+            closeModalBtn.addEventListener('click', () => {
+                modal.style.display = 'none';
+            });
+
+            // Fecha o modal ao clicar fora dele
+            window.addEventListener('click', (event) => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        });
+    </script>
 </body>
 </html>
